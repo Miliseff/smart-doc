@@ -28,8 +28,8 @@ else:
 
 _llm_client = OpenAI(api_key=OPENAI_KEY)
 PRICING = {"gpt-3.5-turbo": 0.002, "gpt-4o-mini": 0.003}
-_INDEX: faiss.Index
-_CHUNKS: List[str]
+_INDEX: faiss.Index = None
+_CHUNKS: List[str] = []
 
 
 def embed_texts(texts: List[str]) -> np.ndarray:
