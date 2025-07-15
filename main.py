@@ -8,8 +8,8 @@ from typing import List, Optional, Tuple
 import numpy as np
 import requests
 import typer
-from sentence_transformers import SentenceTransformer
 import faiss
+from sentence_transformers import SentenceTransformer
 from openai import OpenAI
 
 app = typer.Typer(add_completion=False)
@@ -27,6 +27,7 @@ else:
     _st_model = SentenceTransformer(EMBED_MODEL)
 
 _llm_client = OpenAI(api_key=OPENAI_KEY)
+PRICING = {"gpt-3.5-turbo": 0.002, "gpt-4o-mini": 0.003}
 _INDEX: faiss.Index
 _CHUNKS: List[str]
 
@@ -85,22 +86,22 @@ def build_prompt(q: str, passages: List[Tuple[str, int]]) -> str:
     return f"Context:\n{ctx}\n\nQuestion: {q}\nAnswer:"
 
 
-def call_llm(prompt: str, *, model: str = "gpt-3.5-turbo") -> str:
-    rsp = _llm_client.chat.completions.create(
+def call_llm(prompt: str, *, model: str = "gpt-3.5-turbo") -> Tuple[str, object]:
+    resp = _llm_client.chat.completions.create(
         model=model,
         messages=[{"role": "user", "content": prompt}],
         max_tokens=400,
         temperature=0.2,
     )
-    return rsp.choices[0].message.content.strip()
+    return resp.choices[0].message.content.strip(), resp.usage
 
 
-def log_query(ts: float, question: str, *, tokens: int, cost: float, latency_ms: float, path: Path = Path("qa_history.jsonl")) -> None:
+def log_query(ts: float, question: str, *, tokens: int, cost_usd: float, latency_ms: float, path: Path = Path("qa_history.jsonl")) -> None:
     record = {
         "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(ts)),
         "question": question,
         "tokens": tokens,
-        "cost_usd": cost,
+        "cost_usd": cost_usd,
         "latency_ms": latency_ms,
     }
     with path.open("a", encoding="utf-8") as f:
@@ -134,15 +135,17 @@ def main(
         start = time.perf_counter()
         passages = retrieve(q, top_k=top_k)
         prompt = build_prompt(q, passages)
-        answer = call_llm(prompt, model=model)
+        answer, usage = call_llm(prompt, model=model)
+        total_tokens = getattr(usage, 'total_tokens', 0)
+        cost_usd = total_tokens * (PRICING.get(model, 0.0) / 1000)
         latency = (time.perf_counter() - start) * 1000
-        log_query(time.time(), q, tokens=len(prompt.split()), cost=0.0, latency_ms=latency)
+        log_query(time.time(), q, tokens=total_tokens, cost_usd=cost_usd, latency_ms=latency)
         typer.echo(answer)
         typer.echo("\nSources:")
         for p, i in passages:
-            snippet = p.replace('\n', ' ')[:80]
+            snippet = p.replace("\n", " ")[:80]
             typer.echo(f"({i}) {snippet}…")
-    
+
     if ask:
         handle(ask)
     else:
