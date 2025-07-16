@@ -5,7 +5,7 @@ setup(
     version="0.1.0",
     py_modules=["main"],
     install_requires=[
-    "torch==2.1.0+cpu",
+    "torch>=2.1.0",
     "faiss-cpu>=1.7.4",
     "sentence-transformers>=2.6.0",
     "openai>=1.0.0",
