@@ -27,4 +27,7 @@ jobs:
 
 
       - name: Run unit tests
+        env:
+          OPENAI_API_KEY: dummy-key
         run: pytest -q
+
