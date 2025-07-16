@@ -1,51 +1,17 @@
 # smart-doc
 
-
-A lightweight command‑line tool that converts any collection of text files into a searchable knowledge base and answers questions with clear, cited responses.
-
----
-
-
-## Main features
-
-* **Single‑command use** – `smartqa --input docs/guide.md --ask `.
-* **Interactive mode** – Omit `--ask` to open a REPL for follow‑up questions.
-* **Configurable embeddings** – Works with OpenAI models or any local `sentence‑transformers` model.
-* **Fast retrieval** – Text is split into manageable chunks and indexed in FAISS by default .
-* **Transparent answers** – Each answer is limited to \~200 words and includes inline citations so you can verify the source.
-* **Cost and latency log** – Every request is logged to `qa_history.jsonl` with token usage and response time.
-
-## How it works
-
-```
-load → chunk → embed → index
-query → retrieve → build prompt → generate answer
-```
-
 ## Installation
 
 ```bash
 # Clone the repository
-$ git clone https://github.com/youruser/smart-doc
+$ git clone https://github.com/Miliseff/smart-doc
 $ cd smart-doc
 
 # Install dependencies
-$ poetry install  # or: pip install -r requirements.txt
+$ poetry install      # or: pip install -r requirements.txt
 ```
 
-> **Requirements:** Python 3.9 or later. If you plan to use hosted models set `OPENAI_API_KEY` in your environment.
-
-## Quick start
-
-```bash
-# Index a document and open the interactive shell
-$ smartqa --input docs/brief.txt
-
-# One‑shot question
-$ smartqa --input docs/brief.txt --ask 
-```
-
-Configuration values (chunk size, model name, top‑k, etc.) live in `config.yaml` and can be overridden from the command line.
+> **Requirements:** Python 3.9 + and `gcc`/`clang` for compiling FAISS. Set `OPENAI_API_KEY` in your environment if you plan to use hosted models.
 
 ## Testing
 
@@ -53,10 +19,39 @@ Configuration values (chunk size, model name, top‑k, etc.) live in `config.yam
 $ pytest
 ```
 
-## Roadmap
+## Environment Variables
 
-* Streaming output option (`--stream`)
-* Async batch mode
-* `--score` flag to print similarity scores
-* Docker image and minimal web UI
+| Variable            | Purpose                                                   | Default            |
+| ------------------- | --------------------------------------------------------- | ------------------ |
+| `EMBEDDING_BACKEND` | Select the embedding service: `local`, `openai`, or `hf`. | `local`            |
+| `EMBEDDING_MODEL`   | Name of the embedding model to load or call.              | `all-MiniLM-L6-v2` |
+| `OPENAI_API_KEY`    | Required when using OpenAI embeddings or chat models.     | —                  |
+| `HF_API_TOKEN`      | Required when `EMBEDDING_BACKEND=hf`.                     | —                  |
 
+Set variables in your shell or a `.env` file:
+
+```bash
+export EMBEDDING_BACKEND=openai
+export OPENAI_API_KEY=sk-…
+```
+
+## Example Commands
+
+```bash
+# 1. Ask a one  question
+smartqa --input docs/spec.txt --ask "What is the main goal?"
+
+# 2.  Open the interactive shell
+smartqa --input docs/spec.txt
+
+# 3. Index an entire directory 
+smartqa --input "./handbook/**/*.md" --chunk-size 400
+
+# 4. Use a local embedding model
+export EMBEDDING_BACKEND=local
+export EMBEDDING_MODEL=intfloat/e5-small-v2
+smartqa --input README.md --ask "List the core features."
+
+# 5. Stream answer tokens live 
+smartqa --input docs/design.pdf --ask "Name the design principles" --stream --score
+```
