@@ -61,7 +61,7 @@ pydantic_core==2.33.2
 Pygments==2.19.2
 pytest==8.4.1
 python-dateutil==2.9.0.post0
-pywin32==311
+pywin32==311; sys_platform == "win32"
 PyYAML==6.0.2
 pyzmq==27.0.0
 referencing==0.36.2
